@@ -1,0 +1,341 @@
+{
+  // ============================================================
+  // ALINA v2 — OpenClaw Configuration
+  // ============================================================
+  // Secrets are in environment variables (loaded via agenix).
+  // This file is checked into git. Never put tokens here.
+  // ============================================================
+
+  // === GATEWAY ===
+  gateway: {
+    port: 18789,
+    mode: "local",
+    bind: "loopback",
+    auth: {
+      mode: "token",
+      // Token loaded from $GATEWAY_AUTH_TOKEN env var
+    },
+    http: {
+      endpoints: {
+        chatCompletions: { enabled: true },
+      },
+    },
+  },
+
+  // === AUTH PROFILES ===
+  auth: {
+    profiles: {
+      // Anthropic Max subscription (OAuth) — covers all Claude models
+      "anthropic:default": { provider: "anthropic", mode: "token" },
+      // OpenAI API key — for GPT models + fallbacks
+      "openai:default": { provider: "openai", mode: "api_key" },
+      // Google Gemini API key
+      "google-gemini:default": { provider: "google-gemini", mode: "api_key" },
+    },
+  },
+
+  // === AGENT DEFAULTS ===
+  agents: {
+    defaults: {
+      model: {
+        primary: "anthropic/claude-opus-4-6",
+        fallbacks: [
+          "anthropic/claude-sonnet-4-6",
+          "openai/gpt-5.4",
+          "google-gemini/gemini-2.5-pro",
+        ],
+      },
+      models: {
+        "anthropic/claude-opus-4-6": { alias: "opus" },
+        "anthropic/claude-sonnet-4-6": { alias: "sonnet" },
+        "openai/gpt-5.3-codex": { alias: "codex" },
+        "openai/gpt-5.4": {},
+        "google-gemini/gemini-2.5-pro": {},
+      },
+      // Main agent workspace (ALINA)
+      workspace: "~/.openclaw/agents/alina",
+      memorySearch: { provider: "gemini" },
+      compaction: {
+        mode: "default",
+        maxHistoryShare: 0.75,
+        memoryFlush: { softThresholdTokens: 100000 },
+      },
+      heartbeat: { every: "45m" },
+      maxConcurrent: 4,
+      // Sub-agent settings
+      subagents: {
+        maxConcurrent: 8,
+        runTimeoutSeconds: 900,    // 15 min default
+        archiveAfterMinutes: 60,
+      },
+    },
+
+    // === AGENT ROSTER ===
+    list: [
+      // ALINA — Orchestrator, front door
+      {
+        id: "main",
+        default: true,
+        name: "ALINA",
+        workspace: "~/.openclaw/agents/alina",
+        subagents: {
+          allowAgents: ["main", "coder", "strategist", "ops", "scout", "creative", "aero", "modeler"],
+        },
+      },
+
+      // FORGE — Code implementation
+      {
+        id: "coder",
+        name: "FORGE",
+        workspace: "~/.openclaw/agents/forge",
+        model: {
+          primary: "anthropic/claude-sonnet-4-6",
+          fallbacks: ["anthropic/claude-opus-4-6", "openai/gpt-5.3-codex", "openai/gpt-5.4"],
+        },
+        subagents: { allowAgents: ["coder", "main"] },
+      },
+
+      // ATLAS — Architecture & planning
+      {
+        id: "strategist",
+        name: "ATLAS",
+        workspace: "~/.openclaw/agents/atlas",
+        model: {
+          primary: "anthropic/claude-opus-4-6",
+          fallbacks: ["anthropic/claude-sonnet-4-6", "openai/gpt-5.4", "google-gemini/gemini-2.5-pro"],
+        },
+        subagents: { allowAgents: ["strategist", "main"] },
+      },
+
+      // SENTRY — Infrastructure & ops
+      {
+        id: "ops",
+        name: "SENTRY",
+        workspace: "~/.openclaw/agents/sentry",
+        model: {
+          primary: "anthropic/claude-sonnet-4-6",
+          fallbacks: ["anthropic/claude-opus-4-6", "openai/gpt-5.4"],
+        },
+        subagents: { allowAgents: ["ops", "main"] },
+      },
+
+      // RECON — Research & analysis
+      {
+        id: "scout",
+        name: "RECON",
+        workspace: "~/.openclaw/agents/recon",
+        model: {
+          primary: "anthropic/claude-sonnet-4-6",
+          fallbacks: ["anthropic/claude-opus-4-6", "openai/gpt-5.4"],
+        },
+        subagents: { allowAgents: ["scout", "main"] },
+      },
+
+      // MUSE — Content & creative
+      {
+        id: "creative",
+        name: "MUSE",
+        workspace: "~/.openclaw/agents/muse",
+        model: {
+          primary: "anthropic/claude-sonnet-4-6",
+          fallbacks: ["anthropic/claude-opus-4-6", "openai/gpt-5.4"],
+        },
+        subagents: { allowAgents: ["creative", "main", "scout"] },
+      },
+
+      // AERO — Aero DB pipeline specialist
+      {
+        id: "aero",
+        name: "AERO",
+        workspace: "~/.openclaw/agents/aero",
+        model: {
+          primary: "anthropic/claude-sonnet-4-6",
+          fallbacks: ["anthropic/claude-opus-4-6", "openai/gpt-5.4"],
+        },
+        subagents: { allowAgents: ["aero", "main"] },
+      },
+
+      // MODELER — Simulink & MATLAB
+      {
+        id: "modeler",
+        name: "MODELER",
+        workspace: "~/.openclaw/agents/modeler",
+        model: {
+          primary: "anthropic/claude-sonnet-4-6",
+          fallbacks: ["anthropic/claude-opus-4-6", "openai/gpt-5.4"],
+        },
+        subagents: { allowAgents: ["modeler", "main"] },
+      },
+    ],
+  },
+
+  // === BINDINGS (channel → agent routing) ===
+  bindings: [
+    // Discord — primary platform, one bot per agent
+    { agentId: "main", match: { channel: "discord", accountId: "default" } },
+    { agentId: "coder", match: { channel: "discord", accountId: "forge" } },
+    { agentId: "strategist", match: { channel: "discord", accountId: "atlas" } },
+    { agentId: "ops", match: { channel: "discord", accountId: "sentry" } },
+    { agentId: "scout", match: { channel: "discord", accountId: "recon" } },
+    { agentId: "creative", match: { channel: "discord", accountId: "muse" } },
+    { agentId: "aero", match: { channel: "discord", accountId: "aero" } },
+    { agentId: "modeler", match: { channel: "discord", accountId: "modeler" } },
+
+    // Slack — secondary, ALINA only
+    { agentId: "main", match: { channel: "slack", accountId: "default" } },
+
+    // WhatsApp — mobile, ALINA only
+    { agentId: "main", match: { channel: "whatsapp" } },
+
+    // Telegram
+    { agentId: "main", match: { channel: "telegram" } },
+  ],
+
+  // === CHANNELS ===
+  channels: {
+    // Discord — primary platform
+    discord: {
+      enabled: true,
+      groupPolicy: "allowlist",
+      // Token from env: $DISCORD_BOT_TOKEN_ALINA
+      accounts: {
+        default: {
+          name: "ALINA",
+          // token from $DISCORD_BOT_TOKEN_ALINA
+          guilds: {
+            // TODO: Add guild ID after server creation
+          },
+        },
+        forge: { name: "FORGE" },
+        atlas: { name: "ATLAS" },
+        sentry: { name: "SENTRY" },
+        recon: { name: "RECON" },
+        muse: { name: "MUSE" },
+        aero: { name: "AERO" },
+        modeler: { name: "MODELER" },
+      },
+    },
+
+    // Slack — secondary, just ALINA
+    slack: {
+      mode: "socket",
+      enabled: true,
+      // Tokens from env: $SLACK_BOT_TOKEN, $SLACK_APP_TOKEN
+      streaming: "partial",
+      dmPolicy: "allowlist",
+      allowFrom: ["U0AG7120MHU"],  // Matt
+    },
+
+    // WhatsApp — mobile
+    whatsapp: {
+      enabled: true,
+      dmPolicy: "allowlist",
+      allowFrom: ["+19492954662"],
+      groupPolicy: "allowlist",
+      mediaMaxMb: 50,
+    },
+
+    // Telegram
+    telegram: {
+      enabled: true,
+      dmPolicy: "pairing",
+      // Token from env: $TELEGRAM_BOT_TOKEN
+      groupPolicy: "allowlist",
+      streaming: "partial",
+    },
+  },
+
+  // === SESSION ===
+  session: {
+    dmScope: "per-channel-peer",
+    threadBindings: {
+      spawnSubagentSessions: true,
+      spawnAcpSessions: true,
+    },
+  },
+
+  // === TOOLS ===
+  tools: {
+    web: {
+      search: {
+        provider: "perplexity",
+        perplexity: { model: "perplexity/sonar-pro-search" },
+      },
+    },
+    agentToAgent: {
+      enabled: true,
+      allow: ["main", "coder", "strategist", "ops", "scout", "creative", "aero", "modeler"],
+    },
+  },
+
+  // === ACP (Coding Agents) ===
+  acp: {
+    enabled: true,
+    dispatch: { enabled: true },
+    backend: "acpx",
+    defaultAgent: "codex",
+    allowedAgents: ["pi", "claude", "codex", "opencode", "gemini"],
+    maxConcurrentSessions: 8,
+    stream: {
+      coalesceIdleMs: 300,
+      maxChunkChars: 1200,
+    },
+    runtime: { ttlMinutes: 120 },
+  },
+
+  // === PLUGINS ===
+  plugins: {
+    entries: {
+      whatsapp: { enabled: true },
+      telegram: { enabled: true },
+      discord: { enabled: true },
+      "voice-call": {
+        enabled: true,
+        config: {
+          provider: "twilio",
+          fromNumber: "+19495419053",
+          toNumber: "+19492954662",
+          inboundPolicy: "allowlist",
+          allowFrom: ["+19492954662"],
+          inboundGreeting: "Hey, you've reached ALINA. What's up?",
+          publicUrl: "https://webhooks.controlstackai.com/voice/webhook",
+          tunnel: { provider: "none" },
+          serve: { port: 3334, bind: "127.0.0.1", path: "/voice/webhook" },
+        },
+      },
+      acpx: { enabled: true },
+    },
+  },
+
+  // === SKILLS ===
+  skills: {
+    install: { nodeManager: "npm" },
+    entries: {
+      // Add skills as needed
+    },
+  },
+
+  // === HOOKS ===
+  hooks: {
+    internal: {
+      enabled: true,
+      entries: {
+        "boot-md": { enabled: true },
+        "command-logger": { enabled: true },
+        "session-memory": { enabled: true },
+      },
+    },
+  },
+
+  // === COMMANDS ===
+  commands: {
+    native: "auto",
+    nativeSkills: "auto",
+    restart: true,
+  },
+
+  // === MESSAGES ===
+  messages: {
+    ackReactionScope: "group-mentions",
+  },
+}

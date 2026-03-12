@@ -139,6 +139,32 @@
       ];
     };
 
+    # GCP — production server configuration (alina-prod VM)
+    # Target: GCP VM running OpenClaw + ALINA Comms (BIOS/GRUB, ext4, no bcachefs)
+    nixosConfigurations.gcp = nixpkgs.lib.nixosSystem {
+      system = system;
+      modules = [
+        ./hosts/gcp/hardware.nix
+        ./modules/server.nix
+        ./hosts/gcp/config.nix
+
+        disko.nixosModules.disko
+        ./hosts/gcp/disk-config.nix
+
+        sops-nix.nixosModules.sops
+        home-manager.nixosModules.home-manager
+        {
+          home-manager.useGlobalPkgs = true;
+          home-manager.useUserPackages = true;
+          home-manager.backupFileExtension = "backup";
+          home-manager.sharedModules = [
+            sops-nix.homeManagerModules.sops
+          ];
+          home-manager.users.matthew = import ./home/matthew-server/home.nix;
+        }
+      ];
+    };
+
     # ALINA v2 — headless server configuration
     # Target: second laptop (22-core / 30 GB) running OpenClaw + ALINA Comms
     nixosConfigurations.alina = nixpkgs.lib.nixosSystem {
