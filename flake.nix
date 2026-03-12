@@ -93,7 +93,7 @@
       ];
     };
 
-    # Minimal VM configuration for smoke tests
+    # Minimal VM configuration for smoke tests (desktop profile)
     nixosConfigurations.vm = nixpkgs.lib.nixosSystem {
       system = system;
       modules = [
@@ -111,6 +111,83 @@
           # No bootloader needed for qemu-vm builder
           boot.loader.grub.enable = false;
           boot.loader.systemd-boot.enable = false;
+        }
+      ];
+    };
+
+    # VM smoke test for the ALINA v2 server profile
+    nixosConfigurations.vm-server = nixpkgs.lib.nixosSystem {
+      system = system;
+      modules = [
+        ./modules/server.nix
+        ./modules/vm-guest.nix
+        sops-nix.nixosModules.sops
+        {
+          networking.hostName = "vm-server";
+          fileSystems."/" = {
+            device = "nodev";
+            fsType = "tmpfs";
+            options = ["mode=0755"];
+          };
+          boot.loader.grub.enable = false;
+          boot.loader.systemd-boot.enable = false;
+          # Disable services that need real hardware/secrets in CI
+          services.caddy.enable = false;
+          services.postgresql.enable = false;
+          systemd.services.openclaw-gateway.enable = false;
+        }
+      ];
+    };
+
+    # GCP — production server configuration (alina-prod VM)
+    # Target: GCP VM running OpenClaw + ALINA Comms (BIOS/GRUB, ext4, no bcachefs)
+    nixosConfigurations.gcp = nixpkgs.lib.nixosSystem {
+      system = system;
+      modules = [
+        ./hosts/gcp/hardware.nix
+        ./modules/server.nix
+        ./hosts/gcp/config.nix
+
+        disko.nixosModules.disko
+        ./hosts/gcp/disk-config.nix
+
+        sops-nix.nixosModules.sops
+        home-manager.nixosModules.home-manager
+        {
+          home-manager.useGlobalPkgs = true;
+          home-manager.useUserPackages = true;
+          home-manager.backupFileExtension = "backup";
+          home-manager.sharedModules = [
+            sops-nix.homeManagerModules.sops
+          ];
+          home-manager.users.matthew = import ./home/matthew-server/home.nix;
+        }
+      ];
+    };
+
+    # ALINA v2 — headless server configuration
+    # Target: second laptop (22-core / 30 GB) running OpenClaw + ALINA Comms
+    nixosConfigurations.alina = nixpkgs.lib.nixosSystem {
+      system = system;
+      modules = [
+        ./hosts/alina/hardware-configuration.nix
+        # server.nix imports the required core modules directly (no desktop/nvf deps)
+        ./modules/server.nix
+        ./hosts/alina/config.nix
+
+        disko.nixosModules.disko
+        ./hosts/alina/disko.nix
+
+        sops-nix.nixosModules.sops
+        home-manager.nixosModules.home-manager
+        {
+          home-manager.useGlobalPkgs = true;
+          home-manager.useUserPackages = true;
+          home-manager.backupFileExtension = "backup";
+          home-manager.sharedModules = [
+            sops-nix.homeManagerModules.sops
+          ];
+          home-manager.users.matthew = import ./home/matthew-server/home.nix;
         }
       ];
     };
@@ -137,6 +214,32 @@
               # Ensure the installer kernel/initrd support bcachefs.
               boot.supportedFilesystems = ["bcachefs"];
             }
+        )
+      ];
+    };
+
+    # Installer ISO for ALINA v2 (same bcachefs-capable base as controlstackos-installer)
+    nixosConfigurations.alina-installer = nixpkgs.lib.nixosSystem {
+      system = system;
+      modules = [
+        "${nixpkgs}/nixos/modules/installer/cd-dvd/installation-cd-minimal-new-kernel-no-zfs.nix"
+        (
+          {
+            lib,
+            pkgs,
+            ...
+          }: {
+            nix.settings.experimental-features = ["nix-command" "flakes"];
+
+            environment.systemPackages = with pkgs; [
+              git
+              disko
+              bcachefs-tools
+              keyutils
+            ];
+
+            boot.supportedFilesystems = ["bcachefs"];
+          }
         )
       ];
     };
@@ -177,6 +280,7 @@
 
       controlstackos = self.nixosConfigurations.controlstackos.config.system.build.toplevel;
       vm = self.nixosConfigurations.vm.config.system.build.vm;
+      vm-server = self.nixosConfigurations.vm-server.config.system.build.vm;
     };
 
     # Optional: Nix-native pre-commit runner (invoked via nix build)

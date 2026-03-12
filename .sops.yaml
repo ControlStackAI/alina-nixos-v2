@@ -1,5 +1,30 @@
 # Do not commit private keys. Put AGE private key in ~/.config/sops/age/keys.txt
 creation_rules:
+  # Existing controlstackos / home secrets
+  - path_regex: secrets/home\.(yaml|yml)$
+    encrypted_regex: '^(data|stringData|password|secret|token)$'
+    age:
+      - age1uvta2fsrsqekkgyw5rjxha3uje2dnazte6kvqqrc88g83zdrfarqwqy0nl
+
+  # ALINA v2 server secrets
+  # Replace the age public key below with the key from the alina machine:
+  #   age-keygen -o ~/.config/sops/age/keys.txt   (on alina)
+  #   grep 'public key' ~/.config/sops/age/keys.txt
+  - path_regex: secrets/alina\.(yaml|yml)$
+    encrypted_regex: '^(data|stringData|password|secret|token)$'
+    age:
+      - age1uvta2fsrsqekkgyw5rjxha3uje2dnazte6kvqqrc88g83zdrfarqwqy0nl  # REPLACE with alina's age key
+
+  # GCP production VM secrets
+  # Replace the age public key below with the key from the GCP VM:
+  #   age-keygen -o ~/.config/sops/age/keys.txt   (on alina-prod)
+  #   grep 'public key' ~/.config/sops/age/keys.txt
+  - path_regex: secrets/gcp\.(yaml|yml)$
+    encrypted_regex: '^(data|stringData|password|secret|token)$'
+    age:
+      - age1uvta2fsrsqekkgyw5rjxha3uje2dnazte6kvqqrc88g83zdrfarqwqy0nl  # REPLACE with GCP VM's age key
+
+  # Catch-all for any other secrets files
   - path_regex: secrets/.*\.(yaml|yml|json|env)$
     encrypted_regex: '^(data|stringData|password|secret|token)$'
     age:
