@@ -1,185 +1,135 @@
-# NixOS • controlstackos
+# NixOS • ALINA v2
 
 [![nix](https://github.com/ManganoConsulting/nixos-nymeria/actions/workflows/nix.yml/badge.svg)](https://github.com/ManganoConsulting/nixos-nymeria/actions/workflows/nix.yml)
 
-A golden flake for my laptop host "controlstackos" (HP Firefly 16 G11, 1TB NVMe, 32GB RAM) with:
+**ALINA v2** — Server-oriented NixOS config for the `alina` laptop (22-core / 30GB RAM), running OpenClaw Gateway + ALINA Comms.
 
-- Home Manager wired as a NixOS module
-- sops-nix for secrets (AGE)
-- Clean flake outputs (dev shell, formatter, checks)
-- CI running `nix flake check` and format checks
-- Fast VM smoke tests via a dedicated `vm` config
-
-> Timezone: America/Los_Angeles • User: matthew
+Also retains the original **controlstackos** host (HP Firefly 16 G11 desktop workstation) as a reference config.
 
 ---
 
-## Status / Roadmap
+## Hosts
 
-**Goal:** A golden NixOS flake for the _controlstackos_ laptop (HP Firefly 16 G11) that works identically on hardware and QEMU VMs, with declarative disk layout (disko), sops-nix secrets, Home Manager user environment, and a near-automatic install/upgrade flow.
-
-**Completed**
-- [x] Flake structure with hardware + VM configs
-- [x] sops-nix for secrets
-- [x] Home Manager as user environment
-- [x] Neovim (NVF) with plugins + LSPs
-- [x] SSH hardening + Tailscale
-- [x] GC + optimisation timers
-
-**In Progress**
-- [ ] Integrate `disko.nixosModules.disko` into the host build
-- [ ] Create a true “installer” flake output or `just install` target
-- [ ] Make Rust + Node toolchains fully declarative
-- [ ] Add laptop-specific power management (tlp or power-profiles-daemon)
-- [ ] Add automated system upgrades (`system.autoUpgrade` or a service)
-- [ ] Split hardware-heavy services out of `modules/common.nix` for cleaner VM builds
+| Host | Purpose | Profile |
+|------|---------|---------|
+| `alina` | Server laptop — OpenClaw + ALINA Comms | `server.nix` |
+| `controlstackos` | HP Firefly 16 G11 workstation | `common.nix` + `desktop.nix` |
 
 ---
 
-## Features
+## Stack
 
-- NixOS with flakes enabled
-- Home Manager integrated inside NixOS
-- sops-nix configured with a repo `.sops.yaml`
-- Dev shell with formatting and lint tools
-- Checks that build the host and VM
-- GitHub Actions CI
-- Optional Cachix wiring in CI
+- **Filesystem:** bcachefs (NVMe, lz4 + zstd background compression)
+- **Bootloader:** systemd-boot
+- **Secrets:** sops-nix (AGE keys)
+- **Disk layout:** disko (declarative partitioning)
+- **Reverse proxy:** Caddy (automatic HTTPS)
+- **Database:** PostgreSQL 16
+- **Containers:** Docker
+- **Packages:** nixpkgs-unstable (Node.js 22 LTS, upgradeable to 25.x)
+- **Networking:** Tailscale + SSH (port 3965, key-only)
 
 ---
 
-## Quick start
+## Server Modules (`modules/server/`)
 
-Ensure you have Nix with flakes enabled.
+| Module | Purpose |
+|--------|---------|
+| `openclaw.nix` | OpenClaw Gateway systemd service |
+| `caddy.nix` | Caddy reverse proxy (comms.controlstackai.com, openclaw.controlstackai.com) |
+| `postgres.nix` | PostgreSQL 16 for ALINA Comms |
+| `docker.nix` | Docker daemon + weekly prune |
+| `packages.nix` | Server package set (Node.js, git, jq, docker, etc.) |
 
-Update inputs and rebuild the host:
+---
+
+## Quick Start — ALINA Server
+
+### 1. Boot the installer ISO
 
 ```bash
-nix flake update
-sudo nixos-rebuild switch --flake .#nymeria
+nix build .#nixosConfigurations.alina-installer.config.system.build.isoImage
 ```
 
-New machine install (manual partition):
+Flash to USB and boot the target machine.
 
-1. Boot the NixOS ISO and connect to the network.
-2. Clone the repo:
-   ```bash
-   git clone git@github.com:ManganoConsulting/nixos-nymeria.git
-   cd nixos-nymeria
-   ```
-3. Copy the generated hardware config:
-   ```bash
-   sudo nixos-generate-config \
-     --show-hardware-config \
-     > hosts/nymeria/hardware-configuration.nix
-   ```
-4. Install:
-   ```bash
-   sudo nixos-install --flake .#nymeria
-   ```
-5. Reboot.
+### 2. Partition with disko
+
+```bash
+# Verify NVMe device (update hosts/alina/disko.nix if not nvme0n1)
+lsblk
+
+sudo nix run github:nix-community/disko -- --mode disko /path/to/hosts/alina/disko.nix
+```
+
+### 3. Set up secrets
+
+```bash
+# On the alina machine, generate an age key:
+age-keygen -o ~/.config/sops/age/keys.txt
+grep 'public key' ~/.config/sops/age/keys.txt
+
+# Back on dev machine — update .sops.yaml with alina's age public key, then:
+cp secrets/alina.yaml.example secrets/alina.yaml
+$EDITOR secrets/alina.yaml   # fill in real values
+sops --age <ALINA_AGE_KEY> --encrypt --in-place secrets/alina.yaml
+```
+
+### 4. Install NixOS
+
+```bash
+sudo nixos-install --flake .#alina
+```
+
+### 5. Post-install: install OpenClaw
+
+```bash
+# As the openclaw user (or root):
+npm install -g openclaw --prefix /var/lib/openclaw/.npm-global
+systemctl enable --now openclaw-gateway
+```
 
 ---
 
-## VM smoke test
+## Secrets Structure (`secrets/alina.yaml`)
 
-Build a quick QEMU VM for local smoke tests:
+| Key | Used by |
+|-----|---------|
+| `token` | openclaw_gateway_token → OpenClaw Gateway |
+| `secret` | comms_api_key → ALINA Comms service |
+| `password` | postgres_comms_password → PostgreSQL init |
+
+See `secrets/alina.yaml.example` for the template.
+
+---
+
+## VM Smoke Tests
 
 ```bash
+# Desktop profile (controlstackos)
 nix build .#nixosConfigurations.vm.config.system.build.vm
-./result/bin/run-nixos-vm
-```
 
-With more CPU or RAM:
-
-```bash
-QEMU_OPTS="-smp 4 -m 4096" ./result/bin/run-nixos-vm
-```
-
-If you use `just`, there is a shortcut:
-
-```bash
-just vm
+# Server profile (alina)
+nix build .#nixosConfigurations.vm-server.config.system.build.vm
 ```
 
 ---
 
-## Dev shell
-
-Enter a dev shell with common tools and hooks:
-
-- alejandra (formatter)
-- statix (lint)
-- deadnix (lint)
-- nil (Nix LSP)
-- nix-output-monitor
-- pre-commit
+## Dev Shell
 
 ```bash
 nix develop
-```
-
-On shell entry, pre-commit hooks are installed automatically.
-You can run the full suite on demand with:
-
-```bash
-nix build .#packages.x86_64-linux.pre-commit-check
+# Provides: git, sops, age, just, statix, deadnix, alejandra, nil, pre-commit
 ```
 
 ---
 
-## Repo layout
+## Timezone / User
 
-- `flake.nix`        — inputs, outputs, host defs, dev shell, checks
-- `hosts/controlstackos/`   — host config and hardware details
-- `modules/`         — shared NixOS modules (core, desktop, vm-guest)
-- `home/`            — Home Manager config for the user
-- `docs/REFRESH.md`  — rebuild, install, and VM notes
-- `secrets/`         — encrypted files (do not commit private keys)
-- `.github/workflows/nix.yml` — CI
+Timezone: `America/Los_Angeles` · Primary user: `matthew`
 
 ---
 
-## CI
+## Original controlstackos Config
 
-GitHub Actions runs:
-
-- `nix fmt -- --check`
-- `nix flake check --print-build-logs`
-- Optional Cachix cache (set `CACHIX_AUTH_TOKEN`)
-- A daily lockfile update PR
-
----
-
-## Secrets (sops-nix)
-
-- The repo contains `.sops.yaml` with an AGE recipient.
-- Your AGE private key must remain local.
-- Keep it in `~/.config/sops/age/keys.txt`.
-
-Example secret mapping is included in `hosts/nymeria/config.nix`.
-It is gated by file existence to avoid failing builds.
-
----
-
-## Contributing / local workflow
-
-- Format Nix files:
-  ```bash
-  nix fmt .
-  ```
-- Lint and checks:
-  ```bash
-  nix flake check --print-build-logs
-  ```
-- Common commands via `just`:
-  ```bash
-  just
-  ```
-
----
-
-## License
-
-Choose a license for this repository.
-Add a `LICENSE` file when decided.
+The `controlstackos` host (HP Firefly 16 G11 desktop) is preserved in `hosts/controlstackos/` and `modules/desktop.nix` as a reference. It uses the full desktop profile (Hyprland, NVF/neovim, Warp terminal, etc.) and is not deployed on ALINA.
