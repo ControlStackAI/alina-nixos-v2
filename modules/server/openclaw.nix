@@ -60,8 +60,10 @@
       # Load secrets as environment variables from the sops-decrypted file.
       # The file path comes from config.sops.secrets."openclaw_gateway_token".path
       # when the secret is declared in the host config. Use EnvironmentFile if available.
-      EnvironmentFile = lib.mkIf (config.sops.secrets ? "openclaw_gateway_token")
-        config.sops.secrets."openclaw_gateway_token".path;
+      EnvironmentFile =
+        if (config.sops.secrets ? "openclaw_gateway_token")
+        then config.sops.secrets."openclaw_gateway_token".path
+        else "/var/lib/openclaw/secrets.env";
 
       # Hardening
       NoNewPrivileges = true;
