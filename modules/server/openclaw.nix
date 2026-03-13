@@ -81,8 +81,11 @@
       NPM_CONFIG_PREFIX = "/var/lib/openclaw/.npm-global";
       PATH = lib.mkForce "/var/lib/openclaw/.npm-global/bin:${pkgs.nodejs_22}/bin:/run/current-system/sw/bin:/usr/bin:/bin";
       # nix-ld: allow prebuilt ELF binaries (codex-acp, claude-acp) to find shared libs
+      # NIX_LD_LIBRARY_PATH is read by nix-ld's wrapper linker; LD_LIBRARY_PATH is needed
+      # for child processes spawned by Node.js (spawnSync doesn't go through binfmt_misc)
       NIX_LD = "/run/current-system/sw/share/nix-ld/lib/ld.so";
       NIX_LD_LIBRARY_PATH = "/run/current-system/sw/share/nix-ld/lib";
+      LD_LIBRARY_PATH = "/run/current-system/sw/share/nix-ld/lib";
     };
   };
 }
