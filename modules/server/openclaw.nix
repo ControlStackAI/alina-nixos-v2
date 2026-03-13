@@ -4,6 +4,8 @@
   lib,
   ...
 }: {
+  # Enable nix-ld so dynamically linked binaries (codex-acp, etc.) can run
+  programs.nix-ld.enable = true;
   # OpenClaw Gateway — systemd system service under a dedicated user
   #
   # Design notes (merged from alina-nixos v1 + alina-nixos-v2):
@@ -28,6 +30,7 @@
     group = "openclaw";
     home = "/var/lib/openclaw";
     createHome = true;
+    shell = pkgs.bash;
     description = "OpenClaw Gateway service user";
   };
   users.groups.openclaw = {};

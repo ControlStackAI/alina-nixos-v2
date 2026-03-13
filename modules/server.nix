@@ -31,5 +31,9 @@
   programs.direnv.enable = true;
   programs.direnv.nix-direnv.enable = true;
 
+  # Enable nix-ld so generic Linux ELF binaries work (e.g. codex-acp, claude-acp)
+  # Required for ACP coding agents which ship prebuilt x86_64 binaries.
+  programs.nix-ld.enable = true;
+
   # No Warp or desktop overlays needed on the server
 }
