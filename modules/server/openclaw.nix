@@ -61,8 +61,8 @@
       # The file path comes from config.sops.secrets."openclaw_gateway_token".path
       # when the secret is declared in the host config. Use EnvironmentFile if available.
       EnvironmentFile =
-        if (config.sops.secrets ? "openclaw_gateway_token")
-        then config.sops.secrets."openclaw_gateway_token".path
+        if (config.sops.secrets ? "openclaw_env")
+        then config.sops.secrets."openclaw_env".path
         else "/var/lib/openclaw/secrets.env";
 
       # Hardening

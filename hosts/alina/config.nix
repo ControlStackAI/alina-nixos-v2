@@ -18,28 +18,28 @@
   # Latest kernel for best bcachefs + hardware support
   boot.kernelPackages = pkgs.linuxPackages_latest;
 
-  # sops-nix secrets for ALINA v2 services
-  # Add secrets/alina.yaml (encrypted) with the keys below.
-  # See secrets/README.md for key generation instructions.
-  #
-  # Required keys in secrets/alina.yaml:
-  #   openclaw_gateway_token: "<openclaw gateway token>"
-  #   comms_api_key:          "<ALINA Comms API key>"
-  #   postgres_comms_password: "ALTER ROLE comms WITH PASSWORD '<password>';"
-  #
-  sops.secrets."openclaw_gateway_token" = lib.mkIf (builtins.pathExists ../../secrets/alina.yaml) {
-    sopsFile = ../../secrets/alina.yaml;
+  # ── sops-nix secrets ──────────────────────────────────────────────────────
+  # Age key derived from SSH host key (no separate key file needed).
+  # Decrypt: ssh-to-age < /etc/ssh/ssh_host_ed25519_key
+  sops.defaultSopsFile = ../../secrets/alina.yaml;
+  sops.age.sshKeyPaths = ["/etc/ssh/ssh_host_ed25519_key"];
+
+  # OpenClaw environment file (multi-var dotenv format)
+  sops.secrets."openclaw_env" = {
     owner = "openclaw";
+    group = "openclaw";
+    mode = "0400";
+    restartUnits = ["openclaw-gateway.service"];
+  };
+
+  # Comms secrets (individual values)
+  sops.secrets."comms_db_password" = {
+    owner = "root";
     mode = "0400";
   };
 
-  sops.secrets."comms_api_key" = lib.mkIf (builtins.pathExists ../../secrets/alina.yaml) {
-    sopsFile = ../../secrets/alina.yaml;
-    owner = "matthew";
+  sops.secrets."comms_jwt_secret" = {
+    owner = "root";
     mode = "0400";
   };
-
-  # Allow SSH on non-standard port (inherits from services.nix) plus 80/443 for Caddy.
-  # Extra ports if you need direct access to internal services during development:
-  # networking.firewall.allowedTCPPorts = [ 5432 ];  # postgres (disable in prod)
 }
