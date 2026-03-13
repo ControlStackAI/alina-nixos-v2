@@ -52,7 +52,7 @@
 
       # openclaw is installed as a global npm package under the service user's home.
       # Adjust ExecStart after running: sudo -u openclaw npm install -g openclaw
-      ExecStart = "${pkgs.nodejs_22}/bin/node /var/lib/openclaw/.npm-global/lib/node_modules/openclaw/bin/openclaw.js gateway start --foreground";
+      ExecStart = "/var/lib/openclaw/.npm-global/bin/openclaw gateway run";
 
       Restart = "on-failure";
       RestartSec = "10s";
