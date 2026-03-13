@@ -23,6 +23,7 @@
     ./server/caddy.nix
     ./server/postgres.nix
     ./server/docker.nix
+    ./server/comms.nix
   ];
 
   # Enable zsh system-wide (users.nix sets it as default shell for matthew)
