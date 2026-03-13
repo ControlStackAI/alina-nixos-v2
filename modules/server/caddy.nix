@@ -33,6 +33,13 @@
         '';
       };
 
+      # ALINA Comms Web Client
+      ":3000" = {
+        extraConfig = ''
+          reverse_proxy localhost:4173
+        '';
+      };
+
       # Health / status
       ":80" = {
         extraConfig = ''
@@ -43,5 +50,5 @@
     };
   };
 
-  networking.firewall.allowedTCPPorts = [80 8443 8444];
+  networking.firewall.allowedTCPPorts = [80 3000 8443 8444];
 }
