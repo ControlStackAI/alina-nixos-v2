@@ -33,7 +33,18 @@
 
   # Enable nix-ld so generic Linux ELF binaries work (e.g. codex-acp, claude-acp)
   # Required for ACP coding agents which ship prebuilt x86_64 binaries.
-  programs.nix-ld.enable = true;
+  programs.nix-ld = {
+    enable = true;
+    libraries = with pkgs; [
+      # Common libs needed by Node.js native addons and prebuilt binaries
+      libcap
+      stdenv.cc.cc.lib  # libstdc++, libgcc_s
+      zlib
+      openssl
+      libffi
+      glib
+    ];
+  };
 
   # No Warp or desktop overlays needed on the server
 }
