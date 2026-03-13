@@ -4,8 +4,6 @@
   lib,
   ...
 }: {
-  # Enable nix-ld so dynamically linked binaries (codex-acp, etc.) can run
-  programs.nix-ld.enable = true;
   # OpenClaw Gateway — systemd system service under a dedicated user
   #
   # Design notes (merged from alina-nixos v1 + alina-nixos-v2):
@@ -82,6 +80,9 @@
       # npm global prefix scoped to service user home
       NPM_CONFIG_PREFIX = "/var/lib/openclaw/.npm-global";
       PATH = lib.mkForce "/var/lib/openclaw/.npm-global/bin:${pkgs.nodejs_22}/bin:/run/current-system/sw/bin:/usr/bin:/bin";
+      # nix-ld: allow prebuilt ELF binaries (codex-acp, claude-acp) to find shared libs
+      NIX_LD = "/run/current-system/sw/share/nix-ld/lib/ld.so";
+      NIX_LD_LIBRARY_PATH = "/run/current-system/sw/share/nix-ld/lib";
     };
   };
 }
