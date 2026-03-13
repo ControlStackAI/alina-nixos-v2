@@ -33,10 +33,15 @@
         '';
       };
 
-      # ALINA Comms Web Client
+      # ALINA Comms Web Client + API (same origin)
       ":3000" = {
         extraConfig = ''
-          reverse_proxy localhost:4173
+          handle /api/* {
+            reverse_proxy localhost:8080
+          }
+          handle {
+            reverse_proxy localhost:4173
+          }
         '';
       };
 
