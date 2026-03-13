@@ -6,40 +6,46 @@
 }: {
   # Caddy reverse proxy for ALINA v2
   #
-  # Virtual hosts:
-  #   comms.controlstackai.com  → ALINA Comms backend (port 4000)
-  #   openclaw.controlstackai.com → OpenClaw Gateway (port 3000)
+  # Current setup: Tailscale-only access (home LAN, no public IP).
+  # Uses Caddy's internal TLS or plain HTTP reverse proxy.
   #
-  # Caddy handles automatic HTTPS via ACME (Let's Encrypt / ZeroSSL).
-  # Make sure DNS for each vhost points to this machine's public IP before
-  # deploying.
-  #
-  # Ports 80 and 443 must be open in any firewall / cloud security group.
+  # When this moves to a public host or gets a Cloudflare tunnel,
+  # switch the site addresses to real domains and Caddy will auto-HTTPS.
 
   services.caddy = {
     enable = true;
 
-    # Global Caddy settings
     globalConfig = ''
       email admin@controlstackai.com
     '';
 
-    # Per-site virtual host blocks
     virtualHosts = {
-      "comms.controlstackai.com" = {
+      # ALINA Comms API — Docker container on port 8080
+      ":8443" = {
         extraConfig = ''
-          reverse_proxy localhost:4000
+          tls internal
+          reverse_proxy localhost:8080
         '';
       };
 
-      "openclaw.controlstackai.com" = {
+      # OpenClaw Gateway — systemd service on port 18789
+      ":8444" = {
         extraConfig = ''
-          reverse_proxy localhost:3000
+          tls internal
+          reverse_proxy localhost:18789
+        '';
+      };
+
+      # Health check / status page on port 80
+      ":80" = {
+        extraConfig = ''
+          respond /health "OK" 200
+          respond "ALINA v2 — use Tailscale to connect" 200
         '';
       };
     };
   };
 
-  # Open firewall for HTTP/HTTPS
-  networking.firewall.allowedTCPPorts = [80 443];
+  # Open firewall for Caddy ports
+  networking.firewall.allowedTCPPorts = [80 443 8443 8444];
 }
