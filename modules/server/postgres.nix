@@ -18,7 +18,7 @@
 
     # Only listen on localhost; Caddy/app connects via Unix socket or 127.0.0.1
     settings = {
-      listen_addresses = "127.0.0.1";
+      listen_addresses = lib.mkForce "127.0.0.1";
       max_connections = 100;
     };
 

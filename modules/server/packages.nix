@@ -45,7 +45,6 @@
 
     # ── TLS / PKI helpers ────────────────────────────────────────────────────
     openssl
-    certutil
     gnupg # GPG — age key management, signing
 
     # ── Shell environment ────────────────────────────────────────────────────
