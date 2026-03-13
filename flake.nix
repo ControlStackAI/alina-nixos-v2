@@ -167,11 +167,11 @@
 
     # ALINA v2 — headless server configuration
     # Target: second laptop (22-core / 30 GB) running OpenClaw + ALINA Comms
+    # No Home Manager — server config is fully system-level NixOS.
     nixosConfigurations.alina = nixpkgs.lib.nixosSystem {
       system = system;
       modules = [
         ./hosts/alina/hardware-configuration.nix
-        # server.nix imports the required core modules directly (no desktop/nvf deps)
         ./modules/server.nix
         ./hosts/alina/config.nix
 
@@ -179,16 +179,6 @@
         ./hosts/alina/disko.nix
 
         sops-nix.nixosModules.sops
-        home-manager.nixosModules.home-manager
-        {
-          home-manager.useGlobalPkgs = true;
-          home-manager.useUserPackages = true;
-          home-manager.backupFileExtension = "backup";
-          home-manager.sharedModules = [
-            sops-nix.homeManagerModules.sops
-          ];
-          home-manager.users.matthew = import ./home/matthew-server/home.nix;
-        }
       ];
     };
 
