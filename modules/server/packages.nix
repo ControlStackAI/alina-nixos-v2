@@ -60,6 +60,28 @@
     iproute2
     tcpdump
     iotop
+
+    # ── Security / pentest (SPECTER toolkit) ─────────────────────────────────
+    nmap # Network scanner
+    nuclei # Vulnerability scanner + templates
+    subfinder # Subdomain discovery
+    amass # Attack surface mapping / OSINT
+    metasploit # Exploitation framework
+    sqlmap # SQL injection detection
+    ffuf # Web fuzzer
+    gobuster # Dir/DNS/vhost brute-forcer
+    feroxbuster # Fast recursive content discovery
+    hydra # Login brute-forcer
+    masscan # Fast port scanner
+    semgrep # Static analysis (code audit)
+    bandit # Python security linter
+    ghidra # Reverse engineering
+    binwalk # Firmware analysis
+    chisel # TCP/UDP tunneling
+    proxychains-ng # Proxy chaining
+    theharvester # OSINT email/subdomain harvesting
+    dnsrecon # DNS enumeration
+    httpx # Fast HTTP prober
   ];
 
   # Shell defaults
