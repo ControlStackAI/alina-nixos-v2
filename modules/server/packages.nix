@@ -71,7 +71,7 @@
     ffuf # Web fuzzer
     gobuster # Dir/DNS/vhost brute-forcer
     feroxbuster # Fast recursive content discovery
-    hydra # Login brute-forcer
+    # hydra # Login brute-forcer — build broken in nixpkgs (test suite fails), revisit later
     masscan # Fast port scanner
     semgrep # Static analysis (code audit)
     bandit # Python security linter
