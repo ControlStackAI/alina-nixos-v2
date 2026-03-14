@@ -45,6 +45,20 @@
         '';
       };
 
+      # ALINA Comms HTTPS (for mic/getUserMedia — requires secure context)
+      "alina.tail90bbd0.ts.net:3443" = {
+        extraConfig = ''
+          tls /etc/caddy/alina.crt /etc/caddy/alina.key
+
+          handle /api/* {
+            reverse_proxy localhost:8080
+          }
+          handle {
+            reverse_proxy localhost:4173
+          }
+        '';
+      };
+
       # Health / status
       ":80" = {
         extraConfig = ''
@@ -55,5 +69,5 @@
     };
   };
 
-  networking.firewall.allowedTCPPorts = [80 3000 8443 8444];
+  networking.firewall.allowedTCPPorts = [80 3000 3443 8443 8444];
 }
