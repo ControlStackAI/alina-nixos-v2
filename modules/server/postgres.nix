@@ -15,7 +15,7 @@
   services.postgresql = {
     enable = true;
     package = pkgs.postgresql_16;
-    extensions = ps: with ps; [pgvector];
+    extensions = with pkgs.postgresql_16.pkgs; [pgvector];
 
     # Only listen on localhost; Caddy/app connects via Unix socket or 127.0.0.1
     settings = {
