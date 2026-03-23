@@ -9,6 +9,7 @@
     ../../modules/core/networking.nix
     ../../modules/core/bootloader.nix
     ../../modules/core/cloudflare-warp.nix
+    ../../modules/core/nvidia.nix
   ];
 
   # Enable booting from a bcachefs root filesystem on this host.
