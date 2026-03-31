@@ -38,6 +38,7 @@
     # ── Cloud & infra ────────────────────────────────────────────────────────
     google-cloud-sdk # gcloud CLI
     gh # GitHub CLI
+    glab # GitLab CLI
 
     # ── Container / orchestration ────────────────────────────────────────────
     docker
