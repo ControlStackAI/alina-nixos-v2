@@ -100,9 +100,6 @@
     nodePackages.eslint_d
 
     yq-go
-
-    # GitLab CLI
-    glab
   ];
 
   cloud = with pkgs; [
