@@ -159,6 +159,7 @@ cmd_import() {
 cmd_verify() {
   log "=== ALINA Health Check ==="
   local ok=0 fail=0
+  set +e
 
   check() {
     if eval "$2" &>/dev/null; then
@@ -179,11 +180,11 @@ cmd_verify() {
   check "Caddy running"         "systemctl is-active caddy"
   check "SSH reachable"         "ssh -o ConnectTimeout=2 localhost true 2>/dev/null || ss -tlnp | grep -q ':3965'"
   check "sops secrets decrypted" "test -f /run/secrets/openclaw_env"
-  check "ACP: claude"           "command -v claude || test -x $OPENCLAW_HOME/.npm-global/bin/claude"
-  check "ACP: codex"            "command -v codex || test -x $OPENCLAW_HOME/.npm-global/bin/codex"
-  check "ACP: mcporter"         "command -v mcporter || test -x $OPENCLAW_HOME/.npm-global/bin/mcporter"
-  check "OpenClaw config"       "test -f $OPENCLAW_HOME/.openclaw/openclaw.json"
-  check "Memory files"          "ls $OPENCLAW_HOME/.openclaw/agents/*/MEMORY.md 2>/dev/null | head -1"
+  check "ACP: claude"           "sudo test -x $OPENCLAW_HOME/.npm-global/bin/claude"
+  check "ACP: codex"            "sudo test -x $OPENCLAW_HOME/.npm-global/bin/codex"
+  check "ACP: mcporter"         "sudo test -x $OPENCLAW_HOME/.npm-global/bin/mcporter"
+  check "OpenClaw config"       "sudo test -f $OPENCLAW_HOME/.openclaw/openclaw.json"
+  check "Memory files"          "sudo find $OPENCLAW_HOME/.openclaw/agents/ -name MEMORY.md 2>/dev/null | head -1"
 
   echo ""
   log "Results: $ok passed, $fail failed"
