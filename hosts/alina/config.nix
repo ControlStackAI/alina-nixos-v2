@@ -24,6 +24,16 @@
   sops.defaultSopsFile = ../../secrets/alina.yaml;
   sops.age.sshKeyPaths = ["/etc/ssh/ssh_host_ed25519_key"];
 
+  # ── OpenClaw Gateway (declarative) ──────────────────────────────────────
+  services.openclaw = {
+    enable = true;
+    version = "2026.4.1";
+    srcHash = "sha256:1cmblhy9w62dr8v93wv97sqqkfyghlj4x7pbggdjlxpnlp7xy2bq";
+    configFile = ../../openclaw/openclaw.json5;
+    agentsDir = ../../openclaw/agents;
+    secretsFile = config.sops.secrets."openclaw_env".path;
+  };
+
   # OpenClaw environment file (multi-var dotenv format)
   sops.secrets."openclaw_env" = {
     owner = "openclaw";
