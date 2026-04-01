@@ -38,6 +38,7 @@ ACP_PACKAGES=(
   "@openai/codex"               # Codex (ACP runtime)
   "mcporter"                    # MCP transport bridge
   "pnpm"                        # Package manager (used by some tools)
+  "acpx"                        # ACP transport (OpenClaw sub-agent harness)
 )
 
 echo "Installing ACP packages..."

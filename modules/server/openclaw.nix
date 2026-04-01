@@ -58,6 +58,13 @@ let
       # Install production dependencies (network available in FOD)
       npm install --production --no-audit --no-fund --ignore-scripts 2>&1
 
+      # Install acpx into the extensions dir (OpenClaw expects it at dist/extensions/acpx/node_modules/.bin/acpx)
+      if [ -d "dist/extensions/acpx" ]; then
+        cd dist/extensions/acpx
+        npm install --production --no-audit --no-fund 2>&1
+        cd ../../..
+      fi
+
       # Clean up npm cache artifacts
       rm -rf "$HOME/.npm" .cache
 
@@ -217,6 +224,8 @@ in {
           # Sync agent workspaces (additive — won't delete runtime state in other dirs)
           ${pkgs.rsync}/bin/rsync -a ${cfg.agentsDir}/ ${cfg.dataDir}/.openclaw/agents/
         ''}
+
+        # acpx is baked into the package (installed during FOD build into dist/extensions/acpx/node_modules)
 
         # Ensure correct ownership
         chown -R ${cfg.user}:${cfg.group} ${cfg.dataDir}/.openclaw/
