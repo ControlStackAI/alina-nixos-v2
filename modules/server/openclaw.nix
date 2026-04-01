@@ -244,12 +244,27 @@ in {
       };
 
       environment = {
+        # Explicit PATH: nix packages + imperative ACP tools from bootstrap-acp.sh
+        PATH = lib.concatStringsSep ":" [
+          "${cfg.dataDir}/.npm-global/bin"
+          "${pkgs.nodejs_22}/bin"
+          "${pkgs.git}/bin"
+          "${pkgs.openssh}/bin"
+          "${pkgs.bash}/bin"
+          "${pkgs.coreutils}/bin"
+          "/run/current-system/sw/bin"
+        ];
+        # ACP tools (claude, codex, mcporter) installed via bootstrap-acp.sh
+        npm_config_prefix = "${cfg.dataDir}/.npm-global";
+        HOME = cfg.dataDir;
         NODE_ENV = "production";
         OPENCLAW_PORT = toString cfg.port;
         # nix-ld: allow prebuilt ELF binaries (codex-acp, claude-acp) to find shared libs
         NIX_LD = "/run/current-system/sw/share/nix-ld/lib/ld.so";
         NIX_LD_LIBRARY_PATH = "/run/current-system/sw/share/nix-ld/lib";
         LD_LIBRARY_PATH = "/run/current-system/sw/share/nix-ld/lib";
+        LOCALE_ARCHIVE = "${pkgs.glibcLocales}/lib/locale/locale-archive";
+        TZDIR = "${pkgs.tzdata}/share/zoneinfo";
       } // cfg.extraEnvironment;
     };
   };
