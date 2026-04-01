@@ -245,7 +245,7 @@ in {
 
       environment = {
         # Explicit PATH: nix packages + imperative ACP tools from bootstrap-acp.sh
-        PATH = lib.concatStringsSep ":" [
+        PATH = lib.mkForce (lib.concatStringsSep ":" [
           "${cfg.dataDir}/.npm-global/bin"
           "${pkgs.nodejs_22}/bin"
           "${pkgs.git}/bin"
@@ -253,7 +253,7 @@ in {
           "${pkgs.bash}/bin"
           "${pkgs.coreutils}/bin"
           "/run/current-system/sw/bin"
-        ];
+        ]);
         # ACP tools (claude, codex, mcporter) installed via bootstrap-acp.sh
         npm_config_prefix = "${cfg.dataDir}/.npm-global";
         HOME = cfg.dataDir;
