@@ -13,11 +13,11 @@ let
   # A fixed-output derivation gets network access and is content-addressed by hash.
   #
   # To update: change version, set outputHash to "" , build, and Nix will tell you the correct hash.
-  openclawNodeModules = pkgs.stdenv.mkDerivation {
+  openclawNodeModules = pkgs.stdenvNoCC.mkDerivation {
     pname = "openclaw-node-modules";
     version = cfg.version;
 
-    # Fixed-output derivation — gets network access
+    # Fixed-output derivation — gets network access during build
     outputHashAlgo = "sha256";
     outputHashMode = "recursive";
     outputHash = cfg.npmDepsHash;
@@ -26,37 +26,47 @@ let
       nodejs_22
       python3
       pkg-config
-      cacert          # SSL certs for npm registry
+      cacert
+      curl
     ];
 
     buildInputs = with pkgs; [
       vips
-      pixman
-      cairo
-      pango
-      libjpeg
-      giflib
-      librsvg
       glib
     ];
 
-    buildCommand = ''
-      export HOME=$TMPDIR
-      export npm_config_nodedir=${pkgs.nodejs_22}
+    SSL_CERT_FILE = "${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt";
+    NODE_OPTIONS = "--dns-result-order=ipv4first";
 
-      mkdir -p $out
-      cd $out
+    dontUnpack = true;
+    dontConfigure = true;
 
-      # Fetch and unpack the openclaw tarball
-      ${pkgs.nodejs_22}/bin/npx --yes npm@latest pack openclaw@${cfg.version} 2>/dev/null
-      tar xzf openclaw-${cfg.version}.tgz --strip-components=1
-      rm -f openclaw-${cfg.version}.tgz
+    buildPhase = ''
+      runHook preBuild
 
-      # Install production dependencies
-      ${pkgs.nodejs_22}/bin/npm install --production --no-audit --no-fund
+      export HOME=$(mktemp -d)
 
-      # Clean up caches
-      rm -rf .npm _cacache .node-gyp
+      mkdir -p pkg
+      cd pkg
+
+      # Download tarball directly
+      curl -sL "https://registry.npmjs.org/openclaw/-/openclaw-${cfg.version}.tgz" -o openclaw.tgz
+      tar xzf openclaw.tgz --strip-components=1
+      rm openclaw.tgz
+
+      # Install production dependencies (network available in FOD)
+      npm install --production --no-audit --no-fund --ignore-scripts 2>&1
+
+      # Clean up npm cache artifacts
+      rm -rf "$HOME/.npm" .cache
+
+      runHook postBuild
+    '';
+
+    installPhase = ''
+      runHook preInstall
+      cp -a . $out
+      runHook postInstall
     '';
   };
 
