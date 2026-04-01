@@ -248,10 +248,6 @@
   // === SESSION ===
   session: {
     dmScope: "per-channel-peer",
-    threadBindings: {
-      spawnSubagentSessions: true,
-      spawnAcpSessions: true,
-    },
   },
 
   // === TOOLS ===
@@ -259,7 +255,6 @@
     web: {
       search: {
         provider: "perplexity",
-        perplexity: { model: "perplexity/sonar-pro-search" },
       },
     },
     agentToAgent: {
