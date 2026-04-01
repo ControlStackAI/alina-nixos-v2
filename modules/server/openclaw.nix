@@ -40,6 +40,7 @@ let
 
     dontUnpack = true;
     dontConfigure = true;
+    dontFixup = true;  # FODs must not reference store paths
 
     buildPhase = ''
       runHook preBuild

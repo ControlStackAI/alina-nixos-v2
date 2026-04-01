@@ -28,7 +28,7 @@
   services.openclaw = {
     enable = true;
     version = "2026.4.1";
-    npmDepsHash = "sha256-aGZN6zpDfDSOw/jSNgcMsW/jrRGF0yVrS56JHml5oCU=";
+    npmDepsHash = lib.fakeHash;
     configFile = ../../openclaw/openclaw.json5;
     agentsDir = ../../openclaw/agents;
     secretsFile = config.sops.secrets."openclaw_env".path;
