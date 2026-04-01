@@ -7,24 +7,29 @@
 let
   cfg = config.services.openclaw;
 
-  # OpenClaw package — built from npm tarball with native deps
-  openclawPkg = pkgs.stdenv.mkDerivation rec {
-    pname = "openclaw";
+  # OpenClaw package — fixed-output derivation that fetches + installs in one step.
+  # This is the pragmatic approach: npm packages without lockfiles can't use
+  # buildNpmPackage, and the Nix sandbox blocks network in normal derivations.
+  # A fixed-output derivation gets network access and is content-addressed by hash.
+  #
+  # To update: change version, set outputHash to "" , build, and Nix will tell you the correct hash.
+  openclawNodeModules = pkgs.stdenv.mkDerivation {
+    pname = "openclaw-node-modules";
     version = cfg.version;
 
-    src = pkgs.fetchurl {
-      url = "https://registry.npmjs.org/openclaw/-/openclaw-${version}.tgz";
-      hash = cfg.srcHash;
-    };
+    # Fixed-output derivation — gets network access
+    outputHashAlgo = "sha256";
+    outputHashMode = "recursive";
+    outputHash = cfg.npmDepsHash;
 
     nativeBuildInputs = with pkgs; [
       nodejs_22
-      python3          # needed by node-gyp for some native modules
+      python3
       pkg-config
+      cacert          # SSL certs for npm registry
     ];
 
     buildInputs = with pkgs; [
-      # Native deps for sharp, canvas, etc.
       vips
       pixman
       cairo
@@ -35,41 +40,45 @@ let
       glib
     ];
 
-    # npm needs a writable HOME
-    HOME = "$TMPDIR";
+    buildCommand = ''
+      export HOME=$TMPDIR
+      export npm_config_nodedir=${pkgs.nodejs_22}
 
-    unpackPhase = ''
-      mkdir -p $out/lib/openclaw
-      cd $out/lib/openclaw
-      tar xzf $src --strip-components=1
+      mkdir -p $out
+      cd $out
+
+      # Fetch and unpack the openclaw tarball
+      ${pkgs.nodejs_22}/bin/npx --yes npm@latest pack openclaw@${cfg.version} 2>/dev/null
+      tar xzf openclaw-${cfg.version}.tgz --strip-components=1
+      rm -f openclaw-${cfg.version}.tgz
+
+      # Install production dependencies
+      ${pkgs.nodejs_22}/bin/npm install --production --no-audit --no-fund
+
+      # Clean up caches
+      rm -rf .npm _cacache .node-gyp
     '';
+  };
 
-    buildPhase = ''
-      cd $out/lib/openclaw
+  openclawPkg = pkgs.stdenv.mkDerivation {
+    pname = "openclaw";
+    version = cfg.version;
 
-      # Install production deps only
-      ${pkgs.nodejs_22}/bin/npm install \
-        --production \
-        --no-optional \
-        --ignore-scripts \
-        --prefer-offline 2>&1 || true
-
-      # Rebuild native modules against system libs
-      ${pkgs.nodejs_22}/bin/npm rebuild 2>&1 || true
-    '';
+    dontUnpack = true;
 
     installPhase = ''
-      # Create bin wrapper
-      mkdir -p $out/bin
-      cat > $out/bin/openclaw <<'WRAPPER'
-      #!/usr/bin/env bash
-      exec ${pkgs.nodejs_22}/bin/node $out/lib/openclaw/openclaw.mjs "$@"
-      WRAPPER
-      chmod +x $out/bin/openclaw
+      mkdir -p $out/lib/openclaw $out/bin
 
-      # Fix the wrapper to expand $out at build time
-      substituteInPlace $out/bin/openclaw \
-        --replace '$out' "$out"
+      # Copy pre-built node_modules derivation
+      cp -a ${openclawNodeModules}/* $out/lib/openclaw/
+
+      # Create bin wrapper
+      cat > $out/bin/openclaw <<EOF
+      #!/usr/bin/env bash
+      exec ${pkgs.nodejs_22}/bin/node $out/lib/openclaw/openclaw.mjs "\$@"
+      EOF
+      chmod +x $out/bin/openclaw
+      substituteInPlace $out/bin/openclaw --replace '      #!' '#!'
     '';
 
     meta = {
@@ -90,10 +99,9 @@ in {
       description = "OpenClaw version from npm registry.";
     };
 
-    srcHash = lib.mkOption {
+    npmDepsHash = lib.mkOption {
       type = lib.types.str;
-      description = "SRI hash of the npm tarball. Get with: nix-prefetch-url --type sha256 --unpack <url>";
-      # To update: nix-prefetch-url --type sha256 --unpack https://registry.npmjs.org/openclaw/-/openclaw-VERSION.tgz
+      description = "Hash of the fixed-output derivation containing openclaw + node_modules. Set to empty string and build to get the correct hash.";
     };
 
     package = lib.mkOption {
