@@ -61,14 +61,14 @@
       };
     };
 
-    nixosConfigurations.controlstackos = nixpkgs.lib.nixosSystem {
+    nixosConfigurations.alina = nixpkgs.lib.nixosSystem {
       system = system;
 
       modules = [
-        ./hosts/controlstackos/hardware-configuration.nix
+        ./hosts/alina/hardware-configuration.nix
         ./modules/common.nix
         ./modules/desktop.nix
-        ./hosts/controlstackos/config.nix
+        ./hosts/alina/config.nix
 
         # Optional imports (uncomment and adjust as needed):
         # nixos-hardware.nixosModules.lenovo-thinkpad-x1-9th-gen
@@ -182,8 +182,8 @@
       ];
     };
 
-    # Bcachefs-aware installer ISO for controlstackos (HP Firefly)
-    nixosConfigurations.controlstackos-installer = nixpkgs.lib.nixosSystem {
+    # Bcachefs-aware installer ISO for alina (HP Firefly)
+    nixosConfigurations.alina-hp-installer = nixpkgs.lib.nixosSystem {
       system = system;
       modules = [
         # Minimal installer image with a recent kernel, without ZFS.
@@ -208,7 +208,7 @@
       ];
     };
 
-    # Installer ISO for ALINA v2 (same bcachefs-capable base as controlstackos-installer)
+    # Installer ISO for ALINA v2 (same bcachefs-capable base as alina-installer)
     nixosConfigurations.alina-installer = nixpkgs.lib.nixosSystem {
       system = system;
       modules = [
@@ -268,7 +268,7 @@
         '';
       };
 
-      controlstackos = self.nixosConfigurations.controlstackos.config.system.build.toplevel;
+      alina = self.nixosConfigurations.alina.config.system.build.toplevel;
       vm = self.nixosConfigurations.vm.config.system.build.vm;
       vm-server = self.nixosConfigurations.vm-server.config.system.build.vm;
     };
