@@ -52,4 +52,17 @@
     owner = "root";
     mode = "0400";
   };
+
+  # ── Momentum Hunter (crypto trading bot) ────────────────────────────────
+  services.momentum-hunter = {
+    enable = true;
+    strategy = "MultiStrategy";
+    dryRun = true;  # Paper trading — flip to false + rebuild to go live
+    initialCapital = 100.0;
+    maxOpenTrades = 5;
+    # Uncomment after adding secrets to secrets/alina.yaml:
+    # krakenApiKeySecret = "momentum-hunter/kraken-api-key";
+    # krakenSecretSecret = "momentum-hunter/kraken-secret";
+    # slackWebhookSecret = "momentum-hunter/slack-webhook";
+  };
 }
