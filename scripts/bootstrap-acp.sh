@@ -39,6 +39,7 @@ ACP_PACKAGES=(
   "mcporter"                    # MCP transport bridge
   "pnpm"                        # Package manager (used by some tools)
   "acpx"                        # ACP transport (OpenClaw sub-agent harness)
+  "@googleworkspace/cli"          # Google Workspace CLI (Gmail, Calendar, Drive, etc.)
 )
 
 echo "Installing ACP packages..."
@@ -54,7 +55,7 @@ ls -1 "$NPM_PREFIX/bin/" 2>/dev/null || echo "(none)"
 echo ""
 echo "=== Verification ==="
 export PATH="$NPM_PREFIX/bin:$PATH"
-for cmd in openclaw claude codex mcporter pnpm; do
+for cmd in openclaw claude codex mcporter pnpm gws; do
   if command -v "$cmd" &>/dev/null; then
     echo "  ✅ $cmd: $(command -v $cmd)"
   else
