@@ -8,6 +8,7 @@
   imports = [
     ../../modules/core/bootloader.nix
     ../../modules/core/networking.nix
+    ../../modules/core/nvidia.nix
   ];
 
   networking.hostName = "alina";
