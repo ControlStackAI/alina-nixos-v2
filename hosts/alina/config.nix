@@ -11,6 +11,8 @@
     ../../modules/core/nvidia.nix
   ];
 
+  nixpkgs.config.allowUnfree = true;
+
   networking.hostName = "alina";
 
   # bcachefs root filesystem support
