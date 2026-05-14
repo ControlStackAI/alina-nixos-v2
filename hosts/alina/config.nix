@@ -58,7 +58,7 @@
 
   # ── Momentum Hunter (crypto trading bot) ────────────────────────────────
   services.momentum-hunter = {
-    enable = true;
+    enable = false;
     strategy = "MultiStrategy";
     dryRun = true;  # Paper trading — flip to false + rebuild to go live
     initialCapital = 100.0;
