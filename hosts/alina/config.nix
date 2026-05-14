@@ -30,8 +30,8 @@
   # ── OpenClaw Gateway (declarative) ──────────────────────────────────────
   services.openclaw = {
     enable = true;
-    version = "2026.4.1";
-    npmDepsHash = "sha256-iG3NNo5POVmbxTmGsfIeQV63xvqgXt6MPPhq/pwNtgE=";
+    version = "2026.5.12-beta.7";
+    npmDepsHash = "sha256-xencRelJ1QgyWm+V8DFWyU7aZ5k9PbU13zoDvpfnXvM=";
     configFile = ../../openclaw/openclaw.json5;
     agentsDir = ../../openclaw/agents;
     secretsFile = config.sops.secrets."openclaw_env".path;
