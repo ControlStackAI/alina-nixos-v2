@@ -29,11 +29,5 @@
     jq
   ];
 
-  services.openclaw = {
-    enable = true;
-    version = "2026.5.12-beta.7";
-    npmDepsHash = "sha256-xencRelJ1QgyWm+V8DFWyU7aZ5k9PbU13zoDvpfnXvM=";
-  };
-
   system.stateVersion = "26.05";
 }
