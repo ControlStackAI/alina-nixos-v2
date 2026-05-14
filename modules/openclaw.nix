@@ -139,8 +139,9 @@ in {
     };
 
     configFile = lib.mkOption {
-      type = lib.types.path;
-      description = "Path to openclaw.json5 (or .json) config file. Will be converted to JSON and deployed.";
+      type = lib.types.nullOr lib.types.path;
+      default = null;
+      description = "Path to openclaw.json5 (or .json) config file. Will be converted to JSON and deployed. When null, the gateway boots with its built-in defaults.";
     };
 
     agentsDir = lib.mkOption {
@@ -208,26 +209,25 @@ in {
       preStart = ''
         mkdir -p ${cfg.dataDir}/.openclaw
 
-        # Deploy config file (convert json5 → json if needed)
-        if echo "${cfg.configFile}" | grep -q '\.json5$'; then
-          ${pkgs.nodejs_22}/bin/node -e "
-            const fs = require('fs');
-            const json5 = require('${cfg.package}/lib/openclaw/node_modules/json5');
-            const src = fs.readFileSync('${cfg.configFile}', 'utf8');
-            fs.writeFileSync('${cfg.dataDir}/.openclaw/openclaw.json', JSON.stringify(json5.parse(src), null, 2));
-          "
-        else
-          cp ${cfg.configFile} ${cfg.dataDir}/.openclaw/openclaw.json
-        fi
+        ${lib.optionalString (cfg.configFile != null) (
+          if lib.hasSuffix ".json5" (toString cfg.configFile)
+          then ''
+            ${pkgs.nodejs_22}/bin/node -e "
+              const fs = require('fs');
+              const json5 = require('${cfg.package}/lib/openclaw/node_modules/json5');
+              const src = fs.readFileSync('${cfg.configFile}', 'utf8');
+              fs.writeFileSync('${cfg.dataDir}/.openclaw/openclaw.json', JSON.stringify(json5.parse(src), null, 2));
+            "
+          ''
+          else ''
+            cp ${cfg.configFile} ${cfg.dataDir}/.openclaw/openclaw.json
+          ''
+        )}
 
         ${lib.optionalString (cfg.agentsDir != null) ''
-          # Sync agent workspaces (additive — won't delete runtime state in other dirs)
           ${pkgs.rsync}/bin/rsync -a ${cfg.agentsDir}/ ${cfg.dataDir}/.openclaw/agents/
         ''}
 
-        # acpx is baked into the package (installed during FOD build into dist/extensions/acpx/node_modules)
-
-        # Ensure correct ownership
         chown -R ${cfg.user}:${cfg.group} ${cfg.dataDir}/.openclaw/
       '';
 

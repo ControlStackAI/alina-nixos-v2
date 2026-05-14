@@ -4,68 +4,36 @@
   lib,
   ...
 }: {
-  # Host-specific configuration for ALINA (22-core server laptop)
-  imports = [
-    ../../modules/core/bootloader.nix
-    ../../modules/core/networking.nix
-    ../../modules/core/nvidia.nix
-  ];
-
-  nixpkgs.config.allowUnfree = true;
-
   networking.hostName = "alina";
+  networking.networkmanager.enable = true;
+  systemd.services.NetworkManager-wait-online.enable = false;
 
-  # bcachefs root filesystem support
+  boot.loader.systemd-boot.enable = true;
+  boot.loader.efi.canTouchEfiVariables = true;
+  boot.loader.systemd-boot.configurationLimit = 10;
   boot.supportedFilesystems = ["bcachefs"];
-
-  # Latest kernel for best bcachefs + hardware support
   boot.kernelPackages = pkgs.linuxPackages_latest;
 
-  # ── sops-nix secrets ──────────────────────────────────────────────────────
-  # Age key derived from SSH host key (no separate key file needed).
-  # Decrypt: ssh-to-age < /etc/ssh/ssh_host_ed25519_key
-  sops.defaultSopsFile = ../../secrets/alina.yaml;
-  sops.age.sshKeyPaths = ["/etc/ssh/ssh_host_ed25519_key"];
+  users.users.matthew = {
+    isNormalUser = true;
+    extraGroups = ["wheel"];
+    openssh.authorizedKeys.keys = [];
+  };
 
-  # ── OpenClaw Gateway (declarative) ──────────────────────────────────────
+  services.openssh.enable = true;
+
+  environment.systemPackages = with pkgs; [
+    git
+    vim
+    curl
+    jq
+  ];
+
   services.openclaw = {
     enable = true;
     version = "2026.5.12-beta.7";
     npmDepsHash = "sha256-xencRelJ1QgyWm+V8DFWyU7aZ5k9PbU13zoDvpfnXvM=";
-    configFile = ../../openclaw/openclaw.json5;
-    agentsDir = ../../openclaw/agents;
-    secretsFile = config.sops.secrets."openclaw_env".path;
   };
 
-  # OpenClaw environment file (multi-var dotenv format)
-  sops.secrets."openclaw_env" = {
-    owner = "openclaw";
-    group = "openclaw";
-    mode = "0400";
-    restartUnits = ["openclaw-gateway.service"];
-  };
-
-  # Comms secrets (individual values)
-  sops.secrets."comms_db_password" = {
-    owner = "root";
-    mode = "0400";
-  };
-
-  sops.secrets."comms_jwt_secret" = {
-    owner = "root";
-    mode = "0400";
-  };
-
-  # ── Momentum Hunter (crypto trading bot) ────────────────────────────────
-  services.momentum-hunter = {
-    enable = false;
-    strategy = "MultiStrategy";
-    dryRun = true;  # Paper trading — flip to false + rebuild to go live
-    initialCapital = 100.0;
-    maxOpenTrades = 5;
-    # Uncomment after adding secrets to secrets/alina.yaml:
-    # krakenApiKeySecret = "momentum-hunter/kraken-api-key";
-    # krakenSecretSecret = "momentum-hunter/kraken-secret";
-    # slackWebhookSecret = "momentum-hunter/slack-webhook";
-  };
+  system.stateVersion = "26.05";
 }
